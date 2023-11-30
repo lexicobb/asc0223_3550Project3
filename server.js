@@ -3,7 +3,7 @@
  * Assignment:  Project 3 - Bulking Up the JWKS Server
  * Class:       CSCE 3550
  * Instructor:  Dr. Hochstetler
- * Due Date:    12 December 2023
+ * Due Date:    10 December 2023
 */
 
 const express = require('express');
@@ -63,9 +63,13 @@ function generateExpiredJWT() {
 function db() {
   const sqlite3 = require('sqlite3').verbose();
   let db = new sqlite3.Database('./totally_not_my_privateKeys.db'); // create database file
+
   db.run('CREATE TABLE IF NOT EXISTS keys(kid INTEGER PRIMARY KEY AUTOINCREMENT,key BLOB NOT NULL,exp INTEGER NOT NULL)'); // create table
   db.run('INSERT INTO keys(key, exp) VALUES(?, ?)', [keyPair.toPEM(true), Math.floor(Date.now() / 1000) + 3600]); // insert valid private key into database
   db.run('INSERT INTO keys(key, exp) VALUES(?, ?)', [expiredKeyPair.toPEM(true), Math.floor(Date.now() / 1000) - 3600]); // insert expired private key into database
+  db.run('CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL, email TEXT UNIQUE, date_registered TIMESTAMP DEFAULT CURRENT_TIMESTAMP, last_login TIMESTAMP)'); // create table for storing user information
+
+  db.run('CREATE TABLE IF NOT EXISTS auth_logs(id INTEGER PRIMARY KEY AUTOINCREMENT, request_ip TEXT NOT NULL, request_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, user_id INTEGER, FOREIGN KEY(user_id) REFERENCES users(id))'); // create table to log authentication requests
 }
 
 app.all('/auth', (req, res, next) => {
@@ -106,3 +110,4 @@ generateKeyPairs().then(() => {
   });
 });
 module.exports = app;
+
